@@ -39,9 +39,9 @@ int main(void){
 	// initial state
 	for(i=0;i<4;i++){
 		state[i] =  (unsigned int)byte[0+4*i]<<24 | 
-		            (unsigned int)byte[1+4*i]<<16 | 
-				    (unsigned int)byte[2+4*i]<<8  | 
-				    (unsigned int)byte[3+4*i];
+		            (unsigned int)byte[1+4*i]<<16 |
+					(unsigned int)byte[2+4*i]<<8  |
+					(unsigned int)byte[3+4*i];
 	}
 	
 	printf("Initial state:\n");
@@ -83,10 +83,10 @@ void PrintState(unsigned int *state){
 unsigned int *SubBytes(unsigned int *state){
 	int i;
 	for(i=0;i<4;i++){
-		state[i] = sbox[state[i]>>24]<<24      |
-				   sbox[state[i]>>16&0xff]<<16 |
-				   sbox[state[i]>>8&0xff]<<8   |
-				   sbox[state[i]&0xff];
+		state[i] =  sbox[state[i]>>24]<<24      |
+					sbox[state[i]>>16&0xff]<<16 |
+					sbox[state[i]>>8&0xff]<<8   |
+					sbox[state[i]&0xff];
 	}
 	
 	return state;
@@ -95,10 +95,10 @@ unsigned int *SubBytes(unsigned int *state){
 unsigned int *ShiftRow(unsigned int *state){
 	unsigned int *s;
 	s = (unsigned int *)malloc(sizeof(unsigned int)*4);
-	s[0] = state[0]&(0xff<<24)    | state[1]&(0xff<<16) | state[2]&(0xff<<8) | state[3]&(0xff); 
-	s[1] = state[1]&(0xff<<24)    | state[2]&(0xff<<16) | state[3]&(0xff<<8) | state[0]&(0xff);
-	s[2] = state[2]&(0xff<<24)    | state[3]&(0xff<<16) | state[0]&(0xff<<8) | state[1]&(0xff);
-	s[3] = state[3]&(0xff<<24)    | state[0]&(0xff<<16) | state[1]&(0xff<<8) | state[2]&(0xff);
+	s[0] = state[0]&(0xff<<24) | state[1]&(0xff<<16) | state[2]&(0xff<<8) | state[3]&(0xff); 
+	s[1] = state[1]&(0xff<<24) | state[2]&(0xff<<16) | state[3]&(0xff<<8) | state[0]&(0xff);
+	s[2] = state[2]&(0xff<<24) | state[3]&(0xff<<16) | state[0]&(0xff<<8) | state[1]&(0xff);
+	s[3] = state[3]&(0xff<<24) | state[0]&(0xff<<16) | state[1]&(0xff<<8) | state[2]&(0xff);
 	
 	state[0]=s[0];
 	state[1]=s[1];
