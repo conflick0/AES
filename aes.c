@@ -5,6 +5,7 @@ void PrintState(unsigned int *state);
 unsigned int *SubBytes(unsigned int *state);
 unsigned int *ShiftRow(unsigned int *state);
 unsigned int *MixColumns(unsigned int *state);
+unsigned int *AddRoundKey(unsigned int *state,unsigned int *xk);
 
 /* S-box */
 unsigned int sbox[256] =  {
@@ -58,6 +59,7 @@ int main(void){
 	printf("ShiftRow state:\n");
 	PrintState(state);
 	printf("\n");
+	
 	
 	state = MixColumns(state);
 	printf("MixColumns state:\n");
@@ -126,11 +128,12 @@ unsigned int *MixColumns(unsigned int *state){
 		b[2]=(state[i]>>8);
 		b[3]=(state[i]);
 		
-		d[0]=(2*b[0]) ^ (3*b[1]) ^ (1*b[2]) ^ (1*b[3]); 
-		d[1]=(1*b[0]) ^ (2*b[1]) ^ (3*b[2]) ^ (1*b[3]); 
-		d[2]=(1*b[0]) ^ (1*b[1]) ^ (2*b[2]) ^ (3*b[3]);
-		d[3]=(3*b[0]) ^ (1*b[1]) ^ (1*b[2]) ^ (2*b[3]); 
 		
+		d[0]=((2*b[0])&(unsigned int)0xff) ^ ((3*b[1])&(unsigned int)0xff) ^ ((1*b[2])&(unsigned int)0xff) ^ ((1*b[3])&(unsigned int)0xff); 
+		d[1]=((1*b[0])&(unsigned int)0xff) ^ ((2*b[1])&(unsigned int)0xff) ^ ((3*b[2])&(unsigned int)0xff) ^ ((1*b[3])&(unsigned int)0xff); 
+		d[2]=((1*b[0])&(unsigned int)0xff) ^ ((1*b[1])&(unsigned int)0xff) ^ ((2*b[2])&(unsigned int)0xff) ^ ((3*b[3])&(unsigned int)0xff);
+		d[3]=((3*b[0])&(unsigned int)0xff) ^ ((1*b[1])&(unsigned int)0xff) ^ ((1*b[2])&(unsigned int)0xff) ^ ((2*b[3])&(unsigned int)0xff); 
+	
 		s[i] = d[0]<<24 | d[1]<<16 | d[2] << 8 | d[3]; 
 	}
 	
@@ -140,6 +143,14 @@ unsigned int *MixColumns(unsigned int *state){
 	state[3]=s[3];
 	
 	return state;
+} 
+
+unsigned int *AddRoundKey(unsigned int *state,unsigned int *xk){
+	int i;
+	for(i=0;i<4;i++){
+		state[i]^=xk[i];
+	}
+	
 } 
 
 
