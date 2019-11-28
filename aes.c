@@ -4,7 +4,7 @@
 void PrintState(unsigned int *state);
 unsigned int *SubBytes(unsigned int *state);
 unsigned int *ShiftRow(unsigned int *state);
-unsigned int *MixClumns(unsigned int *state);
+unsigned int *MixColumns(unsigned int *state);
 
 /* S-box */
 unsigned int sbox[256] =  {
@@ -59,8 +59,8 @@ int main(void){
 	PrintState(state);
 	printf("\n");
 	
-	state = MixClumns(state);
-	printf("MixClumns state:\n");
+	state = MixColumns(state);
+	printf("MixColumns state:\n");
 	PrintState(state);
 	printf("\n");
 	
@@ -113,7 +113,7 @@ unsigned int *ShiftRow(unsigned int *state){
 	return state;
 }
 
-unsigned int *MixClumns(unsigned int *state){
+unsigned int *MixColumns(unsigned int *state){
 	int i;
 	unsigned int *s,*b,*d;
 	s = (unsigned int *)malloc(sizeof(unsigned int)*4);
