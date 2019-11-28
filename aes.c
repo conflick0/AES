@@ -4,6 +4,7 @@
 void PrintState(unsigned int *state);
 unsigned int *SubBytes(unsigned int *state);
 unsigned int *ShiftRow(unsigned int *state);
+unsigned int *MixClumns(unsigned int *state);
 
 /* S-box */
 unsigned int sbox[256] =  {
@@ -48,17 +49,21 @@ int main(void){
 	PrintState(state);
 	printf("\n");
 	
-	state = SubBytes(state);
-		
+	state = SubBytes(state);	
 	printf("Subytes state:\n");
 	PrintState(state);
 	printf("\n");
 	
 	state = ShiftRow(state);
-		
 	printf("ShiftRow state:\n");
 	PrintState(state);
 	printf("\n");
+	
+	state = MixClumns(state);
+	printf("MixClumns state:\n");
+	PrintState(state);
+	printf("\n");
+	
 	
 	
 	return 0;
@@ -106,4 +111,39 @@ unsigned int *ShiftRow(unsigned int *state){
 	state[3]=s[3];
 	
 	return state;
+}
+
+unsigned int *MixClumns(unsigned int *state){
+	int i;
+	unsigned int *s,*b,*d;
+	s = (unsigned int *)malloc(sizeof(unsigned int)*4);
+	b = (unsigned int *)malloc(sizeof(unsigned int)*4);
+	d = (unsigned int *)malloc(sizeof(unsigned int)*4);
+	
+	for(i=0;i<4;i++){
+		b[0]=(state[i]>>24);
+		b[1]=(state[i]>>16);
+		b[2]=(state[i]>>8);
+		b[3]=(state[i]);
+		
+		d[0]=(2*b[0]) ^ (3*b[1]) ^ (1*b[2]) ^ (1*b[3]); 
+		d[1]=(1*b[0]) ^ (2*b[1]) ^ (3*b[2]) ^ (1*b[3]); 
+		d[2]=(1*b[0]) ^ (1*b[1]) ^ (2*b[2]) ^ (3*b[3]);
+		d[3]=(3*b[0]) ^ (1*b[1]) ^ (1*b[2]) ^ (2*b[3]); 
+		
+		s[i] = d[0]<<24 | d[1]<<16 | d[2] << 8 | d[3]; 
+	}
+	
+	state[0]=s[0];
+	state[1]=s[1];
+	state[2]=s[2];
+	state[3]=s[3];
+	
+	return state;
 } 
+
+
+
+
+
+ 
