@@ -144,7 +144,7 @@ unsigned int *KeyExpansion(char inp_key[], unsigned int *exp_key) {
 
 void PrintExpansionKey(unsigned int *exp_key){
     int i;
-    printf("round: 0");
+    printf("round: 0\n");
     for (i = 0; i < 44; i++) {
         if(i%4==0&&i!=0){
             printf("\n");
