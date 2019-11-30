@@ -1,14 +1,9 @@
-#include<stdio.h>
-#include<stdlib.h>
+//
+// Created by root on 2019/11/30.
+//
 
-unsigned int* ShiftLeft(unsigned int* exp_key);
-unsigned int* KeyExpansion(char inp_key[], unsigned int* exp_key);
-void PrintExpansionKey(unsigned int *exp_key);
-void PrintState(unsigned int *state);
-unsigned int *SubBytes(unsigned int *state);
-unsigned int *ShiftRow(unsigned int *state);
-unsigned int *MixColumns(unsigned int *state);
-unsigned int *AddRoundKey(unsigned int *state, unsigned int *exp_key,int round) ;
+#include "aes.h"
+
 
 /* S-box */
 unsigned int S_BOX[256] =  {
@@ -35,71 +30,6 @@ unsigned int S_BOX[256] =  {
 unsigned int R_CON[11] = {
         0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
 };
-
-
-int main(void) {
-    int i;
-    char inp_16_bytes[16]="abcdefghijklmnop";
-    char inp_key[16]="0000000000000000";
-
-    unsigned int *state;
-    unsigned int* exp_key;
-
-    state = (unsigned int *) malloc(sizeof(unsigned int) * 4);
-    exp_key = (unsigned int *)malloc(sizeof(unsigned int)*44);
-
-//    scanf("%s", &inp_16_bytes);
-//    scanf("%s",&inp_key);
-
-    exp_key = KeyExpansion(inp_key, exp_key);
-
-    PrintExpansionKey(exp_key);
-
-
-    // initial state
-    for (i = 0; i < 4; i++) {
-        state[i] = (unsigned int) inp_16_bytes[0 + 4 * i] << 24 |
-                   (unsigned int) inp_16_bytes[1 + 4 * i] << 16 |
-                   (unsigned int) inp_16_bytes[2 + 4 * i] << 8  |
-                   (unsigned int) inp_16_bytes[3 + 4 * i];
-    }
-
-    printf("Initial state:\n");
-    PrintState(state);
-    printf("\n");
-
-    /* Encryption*/
-    /* add round key */
-    state = AddRoundKey(state, exp_key, 0);
-    printf("AddRoundkey state:\n");
-    PrintState(state);
-    printf("\n");
-
-    /* first round four step*/
-    state = SubBytes(state);
-    printf("SubBytes state:\n");
-    PrintState(state);
-    printf("\n");
-
-    state = ShiftRow(state);
-    printf("ShiftRow state:\n");
-    PrintState(state);
-    printf("\n");
-
-    state = MixColumns(state);
-    printf("MixColumns state:\n");
-    PrintState(state);
-    printf("\n");
-
-    state = AddRoundKey(state, exp_key, 1);
-    printf("AddRoundkey state:\n");
-    PrintState(state);
-    printf("\n");
-
-
-
-    return 0;
-}
 
 unsigned int *ShiftLeft(unsigned int *exp_key) {
     unsigned int *tmp;
@@ -148,7 +78,7 @@ void PrintExpansionKey(unsigned int *exp_key){
     for (i = 0; i < 44; i++) {
         if(i%4==0&&i!=0){
             printf("\n");
-            printf("round: %d\n",i/4+1);
+            printf("round: %d\n",i/4);
         }
         printf("%08x\n",exp_key[i]);
     }
@@ -209,19 +139,15 @@ unsigned int *MixColumns(unsigned int *state) {
 
     for (i = 0; i < 4; i++) {
         b[0] = (state[i] >> 24);
-        b[1] = (state[i] >> 16);
-        b[2] = (state[i] >> 8);
-        b[3] = (state[i]);
+        b[1] = (state[i] >> 16) & (unsigned int) 0xff;
+        b[2] = (state[i] >> 8)  & (unsigned int) 0xff;
+        b[3] = (state[i])       & (unsigned int) 0xff;
 
 
-        d[0] = ((2 * b[0]) & (unsigned int) 0xff) ^ ((3 * b[1]) & (unsigned int) 0xff) ^
-               ((1 * b[2]) & (unsigned int) 0xff) ^ ((1 * b[3]) & (unsigned int) 0xff);
-        d[1] = ((1 * b[0]) & (unsigned int) 0xff) ^ ((2 * b[1]) & (unsigned int) 0xff) ^
-               ((3 * b[2]) & (unsigned int) 0xff) ^ ((1 * b[3]) & (unsigned int) 0xff);
-        d[2] = ((1 * b[0]) & (unsigned int) 0xff) ^ ((1 * b[1]) & (unsigned int) 0xff) ^
-               ((2 * b[2]) & (unsigned int) 0xff) ^ ((3 * b[3]) & (unsigned int) 0xff);
-        d[3] = ((3 * b[0]) & (unsigned int) 0xff) ^ ((1 * b[1]) & (unsigned int) 0xff) ^
-               ((1 * b[2]) & (unsigned int) 0xff) ^ ((2 * b[3]) & (unsigned int) 0xff);
+        d[0] = ((2 * b[0]) & (unsigned int) 0xff) ^ ((3 * b[1]) & (unsigned int) 0xff) ^ ((1 * b[2]) & (unsigned int) 0xff) ^ ((1 * b[3]) & (unsigned int) 0xff);
+        d[1] = ((1 * b[0]) & (unsigned int) 0xff) ^ ((2 * b[1]) & (unsigned int) 0xff) ^ ((3 * b[2]) & (unsigned int) 0xff) ^ ((1 * b[3]) & (unsigned int) 0xff);
+        d[2] = ((1 * b[0]) & (unsigned int) 0xff) ^ ((1 * b[1]) & (unsigned int) 0xff) ^ ((2 * b[2]) & (unsigned int) 0xff) ^ ((3 * b[3]) & (unsigned int) 0xff);
+        d[3] = ((3 * b[0]) & (unsigned int) 0xff) ^ ((1 * b[1]) & (unsigned int) 0xff) ^ ((1 * b[2]) & (unsigned int) 0xff) ^ ((2 * b[3]) & (unsigned int) 0xff);
 
         s[i] = d[0] << 24 | d[1] << 16 | d[2] << 8 | d[3];
     }
@@ -237,8 +163,9 @@ unsigned int *MixColumns(unsigned int *state) {
 unsigned int *AddRoundKey(unsigned int *state, unsigned int *exp_key,int round) {
     int i;
     for (i = round*4; i < (round*4)+4; i++) {
-        state[i] ^= exp_key[i];
+        state[i%4] ^= exp_key[i];
     }
+
     return state;
 }
 
