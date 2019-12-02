@@ -81,12 +81,12 @@ unsigned int *ShiftLeft(unsigned int *exp_key) {
     return tmp;
 }
 
-unsigned int *KeyExpansion(unsigned char inp_key[], unsigned int *exp_key) {
+unsigned int *KeyExpansion(unsigned char inp_key[], unsigned int *exp_key, int number_keys, int round) {
     unsigned int *tmp;
     tmp = (unsigned int *) malloc(sizeof(unsigned int));
 
-    /* Initial first round key state exp_key[0:4] */
-    for (int i = 0; i < 4; i++) {
+    /* Initial first round key state exp_key[0:key_len] */
+    for (int i = 0; i < number_keys; i++) {
         exp_key[i] = (unsigned int) inp_key[0 + 4 * i] << 24 |
                      (unsigned int) inp_key[1 + 4 * i] << 16 |
                      (unsigned int) inp_key[2 + 4 * i] << 8  |
@@ -94,18 +94,24 @@ unsigned int *KeyExpansion(unsigned char inp_key[], unsigned int *exp_key) {
     }
 
     /* Expansion round key  */
-    for (int i = 4; i < 44; i++) {
+    for (int i = number_keys; i < 4 * (round + 1); i++) {
         *tmp = exp_key[i - 1];
-        if (i % 4 == 0) {
+        if (i % number_keys == 0) {
             tmp = ShiftLeft(tmp);
             *tmp = S_BOX[*tmp >> 24] << 24        |
                    S_BOX[*tmp >> 16 & 0xff] << 16 |
                    S_BOX[*tmp >> 8 & 0xff] << 8   |
                    S_BOX[*tmp & 0xff];
 
-            *tmp = *tmp ^ (R_CON[i / 4]<<24);
+            *tmp = *tmp ^ (R_CON[i / number_keys]<<24);
         }
-        exp_key[i] = exp_key[i - 4] ^ (*tmp);
+        else if (number_keys > 6 && i % number_keys == 4){
+            *tmp = S_BOX[*tmp >> 24] << 24        |
+                   S_BOX[*tmp >> 16 & 0xff] << 16 |
+                   S_BOX[*tmp >> 8 & 0xff] << 8   |
+                   S_BOX[*tmp & 0xff];
+        }
+        exp_key[i] = exp_key[i - number_keys] ^ (*tmp);
     }
 
     return exp_key;

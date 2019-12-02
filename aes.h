@@ -7,7 +7,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 unsigned int* ShiftLeft(unsigned int* exp_key);
-unsigned int* KeyExpansion(unsigned char inp_key[], unsigned int* exp_key);
+unsigned int* KeyExpansion(unsigned char inp_key[], unsigned int* exp_key, int number_keys, int round);
 void PrintExpansionKey(unsigned int *exp_key);
 void PrintState(unsigned int *state);
 unsigned int *SubBytes(unsigned int *state);
