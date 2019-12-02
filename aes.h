@@ -14,4 +14,7 @@ unsigned int *SubBytes(unsigned int *state);
 unsigned int *ShiftRow(unsigned int *state);
 unsigned int *MixColumns(unsigned int *state);
 unsigned int *AddRoundKey(unsigned int *state, unsigned int *exp_key,int round) ;
+unsigned int *InvSubBytes(unsigned int *state);
+unsigned int *InvShiftRow(unsigned int *state);
+unsigned int *InvMixColumns(unsigned int *state);
 #endif //AES_AES_H

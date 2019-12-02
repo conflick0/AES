@@ -54,9 +54,9 @@ int main(void) {
     printf("Encryption state:\n");
     PrintState(state);
 
-//    state = Decryption(state, exp_key, round);
-//    printf("Decryption state:\n");
-//    PrintState(state);
+    state = Decryption(state, exp_key, round);
+    printf("Decryption state:\n");
+    PrintState(state);
 
     free(state);
     free(exp_key);
@@ -92,16 +92,16 @@ unsigned int *Decryption(unsigned int *state, unsigned int *exp_key, int round) 
 
     /* Initial round only run three step */
     state = AddRoundKey(state, exp_key, i);
-    state = ShiftRow(state);
-    state = SubBytes(state);
+    state = InvShiftRow(state);
+    state = InvSubBytes(state);
 
 
     /* Every round run four step  */
     for (i = round - 1; i > 0; i--) {
         state = AddRoundKey(state, exp_key, i);
-        state = MixColumns(state);
-        state = ShiftRow(state);
-        state = SubBytes(state);
+        state = InvMixColumns(state);
+        state = InvShiftRow(state);
+        state = InvSubBytes(state);
     }
 
     /* Last round add round key  */
