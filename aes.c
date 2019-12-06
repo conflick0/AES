@@ -171,14 +171,60 @@ unsigned int R_CON[11] = {
         0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
 };
 
+unsigned int *Encryption(unsigned int *state, unsigned int *exp_key, int round) {
+    int i = 0;
+
+    /* Initial round add round key  */
+    state = AddRoundKey(state, exp_key, i);
+
+    /* Every round run four step  */
+    for (i = 1; i < round; i++) {
+        state = SubBytes(state);
+        state = ShiftRow(state);
+        state = MixColumns(state);
+        state = AddRoundKey(state, exp_key, i);
+    }
+
+    /* Last round only run three step */
+    state = SubBytes(state);
+    state = ShiftRow(state);
+    state = AddRoundKey(state, exp_key, i);
+
+    return state;
+
+}
+
+unsigned int *Decryption(unsigned int *state, unsigned int *exp_key, int round) {
+    int i = round;
+
+    /* Initial round only run three step */
+    state = AddRoundKey(state, exp_key, i);
+    state = InvShiftRow(state);
+    state = InvSubBytes(state);
+
+
+    /* Every round run four step  */
+    for (i = round - 1; i > 0; i--) {
+        state = AddRoundKey(state, exp_key, i);
+        state = InvMixColumns(state);
+        state = InvShiftRow(state);
+        state = InvSubBytes(state);
+    }
+
+    /* Last round add round key  */
+    state = AddRoundKey(state, exp_key, i);
+
+    return state;
+
+}
+
 unsigned int *ShiftLeft(unsigned int *exp_key) {
-    unsigned int *tmp;
-    tmp = (unsigned int *) malloc(sizeof(unsigned int));
-    *tmp = (*exp_key & (((unsigned int) 0xff) << 24)) >> 24 |
-           (*exp_key & (((unsigned int) 0xff) << 16)) << 8 |
-           (*exp_key & (((unsigned int) 0xff) << 8)) << 8 |
-           (*exp_key & (((unsigned int) 0xff))) << 8;
-    return tmp;
+    *exp_key = (*exp_key & (((unsigned int) 0xff) << 24)) >> 24 |
+               (*exp_key & (((unsigned int) 0xff) << 16)) << 8 |
+               (*exp_key & (((unsigned int) 0xff) << 8)) << 8 |
+               (*exp_key & (((unsigned int) 0xff))) << 8;
+
+    return exp_key;
 }
 
 unsigned int *KeyExpansion(unsigned char inp_key[], unsigned int *exp_key, int number_keys, int round) {
@@ -204,7 +250,8 @@ unsigned int *KeyExpansion(unsigned char inp_key[], unsigned int *exp_key, int n
                    S_BOX[*tmp & 0xff];
 
             *tmp = *tmp ^ (R_CON[i / number_keys] << 24);
-        } else if (number_keys > 6 && i % number_keys == 4) {
+        }
+        else if (number_keys > 6 && i % number_keys == 4) {
             *tmp = S_BOX[*tmp >> 24] << 24 |
                    S_BOX[*tmp >> 16 & 0xff] << 16 |
                    S_BOX[*tmp >> 8 & 0xff] << 8 |
@@ -237,13 +284,10 @@ void PrintState(unsigned int *state) {
     s = (unsigned int *) malloc(sizeof(unsigned int) * 4);
 
     // state row col reverse for easy to look
-    s[0] = (state[0] & (0xff << 24)) | (state[1] & (0xff << 24)) >> 8 | (state[2] & (0xff << 24)) >> 16 |
-           (state[3] & (0xff << 24)) >> 24;
-    s[1] = (state[0] & (0xff << 16)) << 8 | (state[1] & (0xff << 16)) | (state[2] & (0xff << 16)) >> 8 |
-           (state[3] & (0xff << 16)) >> 16;
-    s[2] = (state[0] & (0xff << 8)) << 16 | (state[1] & (0xff << 8)) << 8 | (state[2] & (0xff << 8)) |
-           (state[3] & (0xff << 8)) >> 8;
-    s[3] = (state[0] & 0xff) << 24 | (state[1] & 0xff) << 16 | (state[2] & 0xff) << 8 | (state[3] & 0xff);
+    s[0] = (state[0] & (0xff << 24))      | (state[1] & (0xff << 24)) >> 8 | (state[2] & (0xff << 24)) >> 16 | (state[3] & (0xff << 24)) >> 24;
+    s[1] = (state[0] & (0xff << 16)) << 8 | (state[1] & (0xff << 16))      | (state[2] & (0xff << 16)) >> 8  | (state[3] & (0xff << 16)) >> 16;
+    s[2] = (state[0] & (0xff << 8)) << 16 | (state[1] & (0xff << 8)) << 8  | (state[2] & (0xff << 8))        | (state[3] & (0xff << 8)) >> 8;
+    s[3] = (state[0] & 0xff) << 24        | (state[1] & 0xff) << 16        | (state[2] & 0xff) << 8          | (state[3] & 0xff);
 
     for (i = 0; i < 4; i++) {
         printf("%02x %02x %02x %02x\n", s[i] >> 24, (s[i] >> 16) & 0xff, (s[i] >> 8) & 0xff, s[i] & 0xff);
@@ -292,10 +336,10 @@ unsigned int *MixColumns(unsigned int *state) {
         b[3] = (state[i]) & (unsigned int) 0xff;
 
 
-        d[0] = (gmul2[b[0]] & (unsigned int) 0xff) ^ (gmul3[b[1]] & (unsigned int) 0xff) ^ (b[2] & (unsigned int) 0xff)        ^ (b[3] & (unsigned int) 0xff);
-        d[1] = (b[0] & (unsigned int) 0xff)        ^ (gmul2[b[1]] & (unsigned int) 0xff) ^ (gmul3[b[2]] & (unsigned int) 0xff) ^ (b[3] & (unsigned int) 0xff);
-        d[2] = (b[0] & (unsigned int) 0xff)        ^ (b[1] & (unsigned int) 0xff)        ^ (gmul2[b[2]] & (unsigned int) 0xff) ^ (gmul3[b[3]] & (unsigned int) 0xff);
-        d[3] = (gmul3[b[0]] & (unsigned int) 0xff) ^ (b[1] & (unsigned int) 0xff)        ^ (b[2] & (unsigned int) 0xff)        ^ (gmul2[b[3]] & (unsigned int) 0xff);
+        d[0] = (gmul2[b[0]] & 0xff) ^ (gmul3[b[1]] & 0xff) ^ (b[2] & 0xff)        ^ (b[3] & 0xff);
+        d[1] = (b[0] & 0xff)        ^ (gmul2[b[1]] & 0xff) ^ (gmul3[b[2]] & 0xff) ^ (b[3] & 0xff);
+        d[2] = (b[0] & 0xff)        ^ (b[1] & 0xff)        ^ (gmul2[b[2]] & 0xff) ^ (gmul3[b[3]] & 0xff);
+        d[3] = (gmul3[b[0]] & 0xff) ^ (b[1] & 0xff)        ^ (b[2] & 0xff)        ^ (gmul2[b[3]] & 0xff);
 
 
         s[i] = d[0] << 24 | d[1] << 16 | d[2] << 8 | d[3];
@@ -361,10 +405,10 @@ unsigned int *InvMixColumns(unsigned int *state) {
         b[3] = (state[i]) & (unsigned int) 0xff;
 
 
-        d[0] = (gmul14[b[0]] & (unsigned int) 0xff) ^ (gmul11[b[1]] & (unsigned int) 0xff) ^ (gmul13[b[2]] & (unsigned int) 0xff) ^ (gmul9[b[3]] & (unsigned int) 0xff);
-        d[1] = (gmul9[b[0]] & (unsigned int) 0xff)  ^ (gmul14[b[1]] & (unsigned int) 0xff) ^ (gmul11[b[2]] & (unsigned int) 0xff) ^ (gmul13[b[3]] & (unsigned int) 0xff);
-        d[2] = (gmul13[b[0]] & (unsigned int) 0xff) ^ (gmul9[b[1]] & (unsigned int) 0xff)  ^ (gmul14[b[2]] & (unsigned int) 0xff) ^ (gmul11[b[3]] & (unsigned int) 0xff);
-        d[3] = (gmul11[b[0]] & (unsigned int) 0xff) ^ (gmul13[b[1]] & (unsigned int) 0xff) ^ (gmul9[b[2]] & (unsigned int) 0xff)  ^ (gmul14[b[3]] & (unsigned int) 0xff);
+        d[0] = (gmul14[b[0]] & 0xff) ^ (gmul11[b[1]] & 0xff) ^ (gmul13[b[2]] & 0xff) ^ (gmul9[b[3]] & 0xff);
+        d[1] = (gmul9[b[0]] & 0xff)  ^ (gmul14[b[1]] & 0xff) ^ (gmul11[b[2]] & 0xff) ^ (gmul13[b[3]] & 0xff);
+        d[2] = (gmul13[b[0]] & 0xff) ^ (gmul9[b[1]] & 0xff)  ^ (gmul14[b[2]] & 0xff) ^ (gmul11[b[3]] & 0xff);
+        d[3] = (gmul11[b[0]] & 0xff) ^ (gmul13[b[1]] & 0xff) ^ (gmul9[b[2]] & 0xff)  ^ (gmul14[b[3]] & 0xff);
 
 
         s[i] = d[0] << 24 | d[1] << 16 | d[2] << 8 | d[3];
