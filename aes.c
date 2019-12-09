@@ -242,6 +242,7 @@ unsigned int *KeyExpansion(unsigned char inp_key[], unsigned int *exp_key, int n
     /* Expansion round key  */
     for (int i = number_keys; i < 4 * (round + 1); i++) {
         *tmp = exp_key[i - 1];
+
         if (i % number_keys == 0) {
             tmp = ShiftLeft(tmp);
             *tmp = S_BOX[*tmp >> 24] << 24 |
