@@ -1,12 +1,7 @@
-//
-// Created by root on 2019/11/30.
-//
+
 
 #ifndef AES_AES_H
 #define AES_AES_H
-
-#include<stdio.h>
-#include<stdlib.h>
 
 unsigned int *Encryption(unsigned int *state, unsigned int *exp_key, int round);
 
