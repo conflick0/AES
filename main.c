@@ -1,7 +1,14 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include "aes_block_mode.h"
+#include "aes.h"
 
+void PrintBlock(Block *block, unsigned long int block_number){
+    for(unsigned long int i=0;i<block_number;i++){
+        printf("block: %lu\n",i);
+        PrintState((block+i)->state);
+    }
+}
 
 int main(void) {
     // Hyper parameters
@@ -15,8 +22,8 @@ int main(void) {
 
     // Hyper parameters test value
     int en_de_cryption_flag = 0; // 1 -> encryption, 0 -> decryption
-    char test_inp_file_name[100] = "e.png"; //0.png//e.png//d.png
-    char test_out_file_name[100] = "d.png";
+    char test_inp_file_name[100] = "e.txt"; //0.png//e.png//d.png
+    char test_out_file_name[100] = "d.txt";
     unsigned char test_inp_key[16] = "0000000000000000";
     int test_key_size_bits = 128;
 
@@ -38,8 +45,10 @@ int main(void) {
 
 
     // read data(bytes by bytes) from file
+    printf("Read file ...\n");
     inp_data=malloc(sizeof(Data));                     // malloc struct inp_data
     inp_data = ReadFile(inp_file_name,inp_data);       // initial struct inp_data value,and read data to inp_data
+
     // transform data to block
     block_number = (inp_data->padding_size_bytes)/16;  // compute how many block composed by inp_data
     block = malloc(block_number*sizeof(Block));        // malloc block array
@@ -49,11 +58,9 @@ int main(void) {
 
     // block encryption/decryption
     if(en_de_cryption_flag == 1){
-        printf("Encryption ...\n\n");
         block = ECB_Mode_Encryption(block,key,block_number);
     }
     else{
-        printf("Decryption ...\n\n");
         block = ECB_Mode_Decryption(block,key,block_number);
     }
 
@@ -63,8 +70,9 @@ int main(void) {
     out_data = malloc(sizeof(Data));                            // malloc out_data
     out_data = InitialData(out_data,inp_data->raw_size_bytes);  // initial struct out_data value
     out_data = Blocks2Data(out_data,block,block_number);        // transform block to out_data
+
     // write encryption data to file
-    printf("Output file ...\n\n");
+    printf("Output file ...\n");
     WriteFile(out_file_name,out_data);
 
 

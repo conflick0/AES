@@ -6,36 +6,30 @@
 #include "aes.h"
 
 Block* ECB_Mode_Encryption(Block *block,Key *key, unsigned long int block_number){
-    printf("Encryption blocks:\n");
+    printf("ECB mode Encryption blocks ...\n");
     for(unsigned long int i=0;i<block_number;i++){
         (block+i)->state = Encryption((block+i)->state, key->exp_key, key->round);
-        PrintState((block+i)->state);
-        printf("\n");
     }
-
     return block;
 }
 
 Block *ECB_Mode_Decryption(Block *block,Key *key, unsigned long int block_number){
-    printf("Decryption blocks:\n");
+    printf("ECB mode Decryption blocks ...\n");
     for(unsigned long int i=0;i<block_number;i++){
         (block+i)->state = Decryption((block+i)->state, key -> exp_key, key -> round);
-        PrintState((block+i)->state);
-        printf("\n");
     }
-
     return block;
 }
 
 Data *InitialData(Data *data,unsigned long int data_size_bytes){
     data -> raw_size_bytes = data_size_bytes;
 
-    // make sure input data size can be divided by 16, if not then padding.
+    // make sure input data size can be divided by 16, if not then padding
     if (data->raw_size_bytes % 16 == 0) {
-        data->padding_size_bytes = data->raw_size_bytes;
+        data->padding_size_bytes = (data->raw_size_bytes);
     }
     else{
-        data->padding_size_bytes = ((data->raw_size_bytes / 16) + 1) * 16 ;
+        data->padding_size_bytes = (((data->raw_size_bytes / 16) + 1) * 16) ;
     }
 
     // initial total buffer = 0
@@ -65,7 +59,7 @@ void WriteFile(char *file_name, Data *data) {
     FILE *file_ptr;
 
     file_ptr = fopen(file_name, "wb");// Open the file in binary mode
-    fwrite(data->buffer, 1, (data->raw_size_bytes), file_ptr); // Read in the entire file
+    fwrite(data->buffer, 1, (data->padding_size_bytes), file_ptr); // Read in the entire file
 
     fclose(file_ptr); // Close the file
 }
