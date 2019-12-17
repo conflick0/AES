@@ -3,11 +3,75 @@
 #include "aes_block_mode.h"
 #include "aes.h"
 
-void PrintBlock(Block *block, unsigned long int block_number){
-    for(unsigned long int i=0;i<block_number;i++){
-        printf("block: %lu\n",i);
-        PrintState((block+i)->state);
+unsigned int *XOR(unsigned int *out_state, unsigned int *inp_state) {
+    for (int i = 0; i < 4; i++) {
+        out_state[i] ^= inp_state[i];
     }
+    return out_state;
+}
+
+unsigned int *CopyState(unsigned int *out_state, unsigned int *inp_state) {
+    for (int i = 0; i < 4; i++) {
+        out_state[i] = inp_state[i];
+    }
+    return out_state;
+}
+
+Block *initialIV(Block *IV) {
+    unsigned char test_iv_value[16] = "1234567812345678";//just for test
+    Data *raw_IV;
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = test_iv_value;
+
+    IV = Data2Blocks(raw_IV, IV, 1);
+    return IV;
+}
+
+Block *CBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_number) {
+    printf("CBC mode Encryption ...\n");
+    Block *IV;
+
+    IV = malloc(sizeof(Block));
+    IV = initialIV(IV);
+
+    (block + 0)->state = XOR((block + 0)->state, IV->state);
+    (block + 0)->state = Encryption((block + 0)->state, key->exp_key, key->round);
+
+    for (unsigned long int i = 1; i < block_number; i++) {
+        (block + i)->state = XOR((block + i)->state, (block + i - 1)->state);
+        (block + i)->state = Encryption((block + i)->state, key->exp_key, key->round);
+    }
+
+    return block;
+}
+
+
+Block *CBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_number) {
+    printf("CBC mode Decryption ...\n");
+    Block *IV, *curr, *prev;
+    Data *row_IV;
+
+    IV = malloc(sizeof(Block));
+    IV = initialIV(IV);
+    curr = malloc(block_number * sizeof(Block));
+    curr->state = malloc(sizeof(unsigned int) * 4);
+    prev = malloc(block_number * sizeof(Block));
+    prev->state = malloc(sizeof(unsigned int) * 4);
+
+    curr->state = CopyState(curr->state, (block + 0)->state);
+    (block + 0)->state = Decryption((block + 0)->state, key->exp_key, key->round);
+    (block + 0)->state = XOR((block + 0)->state, IV->state);
+
+    for (unsigned long int i = 1; i < block_number; i++) {
+        prev->state = CopyState(prev->state, curr->state);
+        curr->state = CopyState(curr->state, (block + i)->state);
+        (block + i)->state = Decryption((block + i)->state, key->exp_key, key->round);
+        (block + i)->state = XOR((block + i)->state, prev->state);
+    }
+
+    return block;
 }
 
 int main(void) {
@@ -58,10 +122,14 @@ int main(void) {
 
     // block encryption/decryption
     if(en_de_cryption_flag == 1){
-        block = ECB_Mode_Encryption(block,key,block_number);
+//        block = ECB_Mode_Encryption(block,key,block_number);
+        block = CBC_Mode_Encryption(block,key,block_number);
+        PrintBlock(block,block_number);
     }
     else{
-        block = ECB_Mode_Decryption(block,key,block_number);
+//        block = ECB_Mode_Decryption(block,key,block_number);
+        block = CBC_Mode_Decryption(block,key,block_number);
+        PrintBlock(block,block_number);
     }
 
 
@@ -72,7 +140,7 @@ int main(void) {
     out_data = Blocks2Data(out_data,block,block_number);        // transform block to out_data
 
     // write encryption data to file
-    printf("Output file ...\n");
+    printf("\nOutput file ...\n");
     WriteFile(out_file_name,out_data);
 
 

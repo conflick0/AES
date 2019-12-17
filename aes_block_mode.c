@@ -6,7 +6,7 @@
 #include "aes.h"
 
 Block* ECB_Mode_Encryption(Block *block,Key *key, unsigned long int block_number){
-    printf("ECB mode Encryption blocks ...\n");
+    printf("ECB mode Encryption ...\n");
     for(unsigned long int i=0;i<block_number;i++){
         (block+i)->state = Encryption((block+i)->state, key->exp_key, key->round);
     }
@@ -14,7 +14,7 @@ Block* ECB_Mode_Encryption(Block *block,Key *key, unsigned long int block_number
 }
 
 Block *ECB_Mode_Decryption(Block *block,Key *key, unsigned long int block_number){
-    printf("ECB mode Decryption blocks ...\n");
+    printf("ECB mode Decryption ...\n");
     for(unsigned long int i=0;i<block_number;i++){
         (block+i)->state = Decryption((block+i)->state, key -> exp_key, key -> round);
     }
@@ -103,6 +103,12 @@ Key *InitialKey(unsigned char *inp_key, Key *key,int key_size_bits) {
     return key;
 }
 
+void PrintBlock(Block *block, unsigned long int block_number){
+    for(unsigned long int i=0;i<block_number;i++){
+        printf("\nblock: %lu\n",i);
+        PrintState((block+i)->state);
+    }
+}
 
 
 

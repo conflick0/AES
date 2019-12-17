@@ -36,4 +36,6 @@ Data *Blocks2Data(Data *data, Block *block, unsigned long int block_number);
 
 Key *InitialKey(unsigned char *inp_key, Key *key,int key_size_bits) ;
 
+void PrintBlock(Block *block, unsigned long int block_number);
+
 #endif //AES_AES_BLOCK_MODE_H
