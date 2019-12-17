@@ -1,6 +1,19 @@
 # AES(developing)
 Information security homework, implement AES-128, AES-192 and AES-256 encryption/decryption.Furthermore, implement Block cipher mode of operation ECB, CBC, PCBC, CFB, OFB and CTR.
 
+## Installation
+### Requirements
+- gcc
+- Windows or Linux
+### Installing gcc on Windows or Linux
+#### On Windows
+- Reference [here](https://sites.google.com/site/mycprogrammingbook/bu-chong-cai-liao/gccanzhuang)
+
+#### On Linux
+```
+sudo apt install build-essential
+```
+
 ## Usage
 ### On Windows
 #### Compile
