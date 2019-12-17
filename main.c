@@ -17,7 +17,7 @@ unsigned int *CopyState(unsigned int *out_state, unsigned int *inp_state) {
     return out_state;
 }
 
-Block *initialIV(Block *IV) {
+Block *InitialIV(Block *IV) {
     unsigned char test_iv_value[16] = "1234567812345678";//just for test
     Data *raw_IV;
     raw_IV = malloc(sizeof(Data));
@@ -34,7 +34,7 @@ Block *CBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_numbe
     Block *IV;
 
     IV = malloc(sizeof(Block));
-    IV = initialIV(IV);
+    IV = InitialIV(IV);
 
     (block + 0)->state = XOR((block + 0)->state, IV->state);
     (block + 0)->state = Encryption((block + 0)->state, key->exp_key, key->round);
@@ -54,7 +54,7 @@ Block *CBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_numbe
     Data *row_IV;
 
     IV = malloc(sizeof(Block));
-    IV = initialIV(IV);
+    IV = InitialIV(IV);
     curr = malloc(block_number * sizeof(Block));
     curr->state = malloc(sizeof(unsigned int) * 4);
     prev = malloc(block_number * sizeof(Block));
