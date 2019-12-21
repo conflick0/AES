@@ -4,16 +4,18 @@
 #include "aes.h"
 
 
-Data *ShiftIV(Data *raw_IV, unsigned char buffer) {
+Data *ShiftIV(Data *raw_IV, unsigned char buffer, int shift_bits) {
+    int preserve_bits = 8 - shift_bits;
     for (int i = 0; i < 15; i++) {
-        raw_IV->buffer[i] = raw_IV->buffer[i + 1];
+        raw_IV->buffer[i] = ((raw_IV->buffer[i] >> preserve_bits) << preserve_bits) |
+                            (raw_IV->buffer[i + shift_bits] >> shift_bits);
     }
     raw_IV->buffer[16] = buffer;
     return raw_IV;
 }
 
-Data *CFB_8_Mode_Encryption(Data *data, Key *key) {
-    printf("CFB-8 mode Encryption ...\n");
+Data *CFB_Mode_Encryption(Data *data, Key *key,int shift_bits) {
+    printf("CFB-%d mode Encryption ...\n",shift_bits);
     Block *IV;
     Data *raw_IV;
 
@@ -29,14 +31,14 @@ Data *CFB_8_Mode_Encryption(Data *data, Key *key) {
     for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
         Encryption(IV->state, key->exp_key, key->round);
         data->buffer[i] = (data->buffer[i]) ^ raw_IV->buffer[0];
-        raw_IV = ShiftIV(raw_IV, data->buffer[i]);
+        raw_IV = ShiftIV(raw_IV, data->buffer[i],shift_bits);
     }
 
     return data;
 }
 
-Data *CFB_8_Mode_Decryption(Data *data, Key *key) {
-    printf("CFB-8 mode Decryption ...\n");
+Data *CFB_Mode_Decryption(Data *data, Key *key,int shift_bits) {
+    printf("CFB-%d mode Decryption ...\n",shift_bits);
     Block *IV;
     unsigned char prev_buffer;
     Data *raw_IV;
@@ -54,7 +56,7 @@ Data *CFB_8_Mode_Decryption(Data *data, Key *key) {
         prev_buffer = data->buffer[i];
         Encryption(IV->state, key->exp_key, key->round);
         data->buffer[i] = (data->buffer[i]) ^ raw_IV->buffer[0];
-        raw_IV = ShiftIV(raw_IV, prev_buffer);
+        raw_IV = ShiftIV(raw_IV, prev_buffer,shift_bits);
     }
 
     return data;
@@ -76,6 +78,7 @@ int main(void) {
     char test_inp_file_name[100] = "e.txt"; //0.png//e.png//d.png
     char test_out_file_name[100] = "d.txt";
     int special_mode = 1; // 0 -> ECB,CBC,PCBC,CTR, 1 -> CFB,OFB
+
 
 
     unsigned char test_inp_key[16] = "0000000000000000";
@@ -113,7 +116,8 @@ int main(void) {
     // block encryption/decryption
     if (en_de_cryption_flag == 1) {
         if (special_mode == 1) {
-            inp_data = CFB_8_Mode_Encryption(inp_data, key);
+//            inp_data = CFB_Mode_Encryption(inp_data, key,8);
+            inp_data = CFB_Mode_Encryption(inp_data, key,1);
         }
         else {
 //            block = ECB_Mode_Encryption(block, key, block_number);
@@ -126,7 +130,8 @@ int main(void) {
     }
     else {
         if (special_mode == 1) {
-            inp_data = CFB_8_Mode_Decryption(inp_data, key);
+//            inp_data = CFB_Mode_Decryption(inp_data, key,8);
+            inp_data = CFB_Mode_Decryption(inp_data, key,1);
         }
         else {
 //            block = ECB_Mode_Decryption(block, key, block_number);
