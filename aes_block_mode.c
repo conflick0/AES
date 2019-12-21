@@ -4,6 +4,35 @@
 #include<stdlib.h>
 #include "aes_block_mode.h"
 #include "aes.h"
+unsigned int *XOR(unsigned int *inp1_state, unsigned int *inp2_state) {
+    unsigned int *state;
+    state = malloc(sizeof(unsigned int) * 4);
+
+    for (int i = 0; i < 4; i++) {
+        state[i] = inp1_state[i] ^ inp2_state[i];
+    }
+
+    return state;
+}
+
+unsigned int *CopyState(unsigned int *out_state, unsigned int *inp_state) {
+    for (int i = 0; i < 4; i++) {
+        out_state[i] = inp_state[i];
+    }
+    return out_state;
+}
+
+Block *InitialIV(Block *IV) {
+    unsigned char test_iv_value[16] = "1234567812345678";//just for test
+    Data *raw_IV;
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = test_iv_value;
+
+    IV = Data2Blocks(raw_IV, IV, 1);
+    return IV;
+}
 
 Block* ECB_Mode_Encryption(Block *block,Key *key, unsigned long int block_number){
     printf("ECB mode Encryption ...\n");
@@ -18,6 +47,95 @@ Block *ECB_Mode_Decryption(Block *block,Key *key, unsigned long int block_number
     for(unsigned long int i=0;i<block_number;i++){
         (block+i)->state = Decryption((block+i)->state, key -> exp_key, key -> round);
     }
+    return block;
+}
+
+Block *CBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_number) {
+    printf("CBC mode Encryption ...\n");
+    Block *IV;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    (block + 0)->state = XOR((block + 0)->state, IV->state);
+    (block + 0)->state = Encryption((block + 0)->state, key->exp_key, key->round);
+
+    for (unsigned long int i = 1; i < block_number; i++) {
+        (block + i)->state = XOR((block + i)->state, (block + i - 1)->state);
+        (block + i)->state = Encryption((block + i)->state, key->exp_key, key->round);
+    }
+
+    return block;
+}
+
+
+Block *CBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_number) {
+    printf("CBC mode Decryption ...\n");
+    Block *IV, *prev;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    prev = malloc(sizeof(Block));
+    prev->state = malloc(sizeof(unsigned int) * 4);
+
+    for (unsigned long int i = 0; i < block_number; i++) {
+        prev->state = CopyState(prev->state, (block + i)->state);
+        (block + i)->state = Decryption((block + i)->state, key->exp_key, key->round);
+        (block + i)->state = XOR((block + i)->state, IV->state);
+        IV->state = CopyState(IV->state, prev->state);
+    }
+
+    return block;
+}
+
+Block *PCBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_number) {
+    printf("PCBC mode Encryption ...\n");
+    Block *IV, *prev;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    prev = malloc(sizeof(Block));
+    prev->state = malloc(sizeof(unsigned int) * 4);
+
+
+    prev->state = CopyState(prev->state, (block + 0)->state);
+    (block + 0)->state = XOR((block + 0)->state, IV->state);
+    (block + 0)->state = Encryption((block + 0)->state, key->exp_key, key->round);
+
+    for (unsigned long int i = 1; i < block_number; i++) {
+        IV->state = XOR((block + i - 1)->state, prev->state);
+        prev->state = CopyState(prev->state, (block + i)->state);
+        (block + i)->state = XOR((block + i)->state, IV->state);
+        (block + i)->state = Encryption((block + i)->state, key->exp_key, key->round);
+    }
+
+    return block;
+}
+
+
+Block *PCBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_number) {
+    printf("PCBC mode Decryption ...\n");
+    Block *IV, *prev;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    prev = malloc(sizeof(Block));
+    prev->state = malloc(sizeof(unsigned int) * 4);
+
+    prev->state = CopyState(prev->state, (block + 0)->state);
+    (block + 0)->state = Decryption((block + 0)->state, key->exp_key, key->round);
+    (block + 0)->state = XOR((block + 0)->state, IV->state);
+
+    for (unsigned long int i = 1; i < block_number; i++) {
+        IV->state = XOR((block + i - 1)->state, prev->state);
+        prev->state = CopyState(prev->state, (block + i)->state);
+        (block + i)->state = Decryption((block + i)->state, key->exp_key, key->round);
+        (block + i)->state = XOR((block + i)->state, IV->state);
+    }
+
     return block;
 }
 
@@ -59,7 +177,7 @@ void WriteFile(char *file_name, Data *data) {
     FILE *file_ptr;
 
     file_ptr = fopen(file_name, "wb");// Open the file in binary mode
-    fwrite(data->buffer, 1, (data->padding_size_bytes), file_ptr); // Read in the entire file
+    fwrite(data->buffer, 1, data->padding_size_bytes, file_ptr);
 
     fclose(file_ptr); // Close the file
 }

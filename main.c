@@ -3,122 +3,63 @@
 #include "aes_block_mode.h"
 #include "aes.h"
 
-unsigned int *XOR(unsigned int *inp1_state, unsigned int *inp2_state) {
-    unsigned int *state;
-    state = malloc(sizeof(unsigned int) * 4);
 
-    for (int i = 0; i < 4; i++) {
-        state[i] = inp1_state[i] ^ inp2_state[i];
+Data *ShiftIV(Data *raw_IV, unsigned char buffer) {
+    for (int i = 0; i < 15; i++) {
+        raw_IV->buffer[i] = raw_IV->buffer[i + 1];
     }
-
-    return state;
+    raw_IV->buffer[16] = buffer;
+    return raw_IV;
 }
 
-unsigned int *CopyState(unsigned int *out_state, unsigned int *inp_state) {
-    for (int i = 0; i < 4; i++) {
-        out_state[i] = inp_state[i];
-    }
-    return out_state;
-}
-
-Block *InitialIV(Block *IV) {
-    unsigned char test_iv_value[16] = "1234567812345678";//just for test
+Data *CFB_8_Mode_Encryption(Data *data, Key *key) {
+    printf("CFB-8 mode Encryption ...\n");
+    Block *IV;
     Data *raw_IV;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
     raw_IV = malloc(sizeof(Data));
     raw_IV->raw_size_bytes = 16;
     raw_IV->padding_size_bytes = 16;
-    raw_IV->buffer = test_iv_value;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
 
-    IV = Data2Blocks(raw_IV, IV, 1);
-    return IV;
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        Encryption(IV->state, key->exp_key, key->round);
+        data->buffer[i] = (data->buffer[i]) ^ raw_IV->buffer[0];
+        raw_IV = ShiftIV(raw_IV, data->buffer[i]);
+    }
+
+    return data;
 }
 
-Block *CBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_number) {
-    printf("CBC mode Encryption ...\n");
+Data *CFB_8_Mode_Decryption(Data *data, Key *key) {
+    printf("CFB-8 mode Decryption ...\n");
     Block *IV;
+    unsigned char prev_buffer;
+    Data *raw_IV;
 
     IV = malloc(sizeof(Block));
     IV = InitialIV(IV);
 
-    (block + 0)->state = XOR((block + 0)->state, IV->state);
-    (block + 0)->state = Encryption((block + 0)->state, key->exp_key, key->round);
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
 
-    for (unsigned long int i = 1; i < block_number; i++) {
-        (block + i)->state = XOR((block + i)->state, (block + i - 1)->state);
-        (block + i)->state = Encryption((block + i)->state, key->exp_key, key->round);
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        prev_buffer = data->buffer[i];
+        Encryption(IV->state, key->exp_key, key->round);
+        data->buffer[i] = (data->buffer[i]) ^ raw_IV->buffer[0];
+        raw_IV = ShiftIV(raw_IV, prev_buffer);
     }
 
-    return block;
+    return data;
 }
 
-
-Block *CBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_number) {
-    printf("CBC mode Decryption ...\n");
-    Block *IV, *prev;
-
-    IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
-
-    prev = malloc(sizeof(Block));
-    prev->state = malloc(sizeof(unsigned int) * 4);
-
-    for (unsigned long int i = 0; i < block_number; i++) {
-        prev->state = CopyState(prev->state, (block + i)->state);
-        (block + i)->state = Decryption((block + i)->state, key->exp_key, key->round);
-        (block + i)->state = XOR((block + i)->state, IV->state);
-        IV->state = CopyState(IV->state, prev->state);
-    }
-
-    return block;
-}
-
-Block *PCBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_number) {
-    Block *IV, *prev;
-
-    IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
-
-    prev = malloc(sizeof(Block));
-    prev->state = malloc(sizeof(unsigned int) * 4);
-
-
-    prev->state = CopyState(prev->state, (block + 0)->state);
-    (block + 0)->state = XOR((block + 0)->state, IV->state);
-    (block + 0)->state = Encryption((block + 0)->state, key->exp_key, key->round);
-
-    for (unsigned long int i = 1; i < block_number; i++) {
-        IV->state = XOR((block + i - 1)->state, prev->state);
-        prev->state = CopyState(prev->state, (block + i)->state);
-        (block + i)->state = XOR((block + i)->state, IV->state);
-        (block + i)->state = Encryption((block + i)->state, key->exp_key, key->round);
-    }
-
-    return block;
-}
-
-
-Block *PCBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_number) {
-    Block *IV, *prev;
-
-    IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
-
-    prev = malloc(sizeof(Block));
-    prev->state = malloc(sizeof(unsigned int) * 4);
-
-    prev->state = CopyState(prev->state, (block + 0)->state);
-    (block + 0)->state = Decryption((block + 0)->state, key->exp_key, key->round);
-    (block + 0)->state = XOR((block + 0)->state, IV->state);
-
-    for (unsigned long int i = 1; i < block_number; i++) {
-        IV->state = XOR((block + i - 1)->state, prev->state);
-        prev->state = CopyState(prev->state, (block + i)->state);
-        (block + i)->state = Decryption((block + i)->state, key->exp_key, key->round);
-        (block + i)->state = XOR((block + i)->state, IV->state);
-    }
-
-    return block;
-}
 
 int main(void) {
     // Hyper parameters
@@ -134,6 +75,9 @@ int main(void) {
     int en_de_cryption_flag = 0; // 1 -> encryption, 0 -> decryption
     char test_inp_file_name[100] = "e.txt"; //0.png//e.png//d.png
     char test_out_file_name[100] = "d.txt";
+    int special_mode = 1; // 0 -> ECB,CBC,PCBC,CTR, 1 -> CFB,OFB
+
+
     unsigned char test_inp_key[16] = "0000000000000000";
     int test_key_size_bits = 128;
 
@@ -168,23 +112,41 @@ int main(void) {
 
     // block encryption/decryption
     if (en_de_cryption_flag == 1) {
-//        block = ECB_Mode_Encryption(block,key,block_number);
-        block = CBC_Mode_Encryption(block, key, block_number);
-//        block = PCBC_Mode_Encryption(block, key, block_number);
-        PrintBlock(block, block_number);
-    } else {
-//        block = ECB_Mode_Decryption(block,key,block_number);
-        block = CBC_Mode_Decryption(block, key, block_number);
-//        block = PCBC_Mode_Decryption(block, key, block_number);
-        PrintBlock(block, block_number);
+        if (special_mode == 1) {
+            inp_data = CFB_8_Mode_Encryption(inp_data, key);
+        }
+        else {
+//            block = ECB_Mode_Encryption(block, key, block_number);
+//            block = CBC_Mode_Encryption(block, key, block_number);
+//            block = PCBC_Mode_Encryption(block, key, block_number);
+//            PrintBlock(block, block_number);
+        }
+
+
+    }
+    else {
+        if (special_mode == 1) {
+            inp_data = CFB_8_Mode_Decryption(inp_data, key);
+        }
+        else {
+//            block = ECB_Mode_Decryption(block, key, block_number);
+//            block = CBC_Mode_Decryption(block, key, block_number);
+//            block = PCBC_Mode_Decryption(block, key, block_number);
+//            PrintBlock(block, block_number);
+        }
     }
 
+    if (special_mode == 1) {
+        out_data = malloc(sizeof(Data));// malloc out_data
+        out_data = inp_data;
+    }
+    else {
+        //transform block to data
+        out_data = malloc(sizeof(Data));                            // malloc out_data
+        out_data = InitialData(out_data, inp_data->padding_size_bytes);  // initial struct out_data value
+        out_data = Blocks2Data(out_data, block, block_number);        // transform block to out_data
 
-
-    // transform block to data
-    out_data = malloc(sizeof(Data));                            // malloc out_data
-    out_data = InitialData(out_data, inp_data->raw_size_bytes);  // initial struct out_data value
-    out_data = Blocks2Data(out_data, block, block_number);        // transform block to out_data
+    }
 
     // write encryption data to file
     printf("\nOutput file ...\n");
