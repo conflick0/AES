@@ -38,13 +38,13 @@ Block *PCBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_numb
 
 Block *PCBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_number);
 
-Data *ShiftIV_8_bit(Data *raw_IV, unsigned char buffer);
+Data *ShiftIV_8_bit(Data *raw_IV, unsigned char last_byte);
 
 Data *CFB_8_Mode_Encryption(Data *data, Key *key);
 
 Data *CFB_8_Mode_Decryption(Data *data, Key *key);
 
-Data *ShiftIV_1_bit(Data *raw_IV, unsigned char padding_buffer);
+Data *ShiftIV_1_bit(Data *raw_IV, unsigned char last_bit);
 
 Data *CFB_1_Mode_Encryption(Data *data, Key *key);
 

@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include "aes_block_mode.h"
+#include "aes.h"
 
 #define ECB_MODE 0
 #define CBC_MODE 1
@@ -10,7 +11,124 @@
 #define OFB_8_MODE 5
 #define OFB_1_MODE 6
 #define CTR_MODE 7
+Data *OFB_8_Mode_Encryption(Data *data, Key *key) {
+    printf("OFB-8 mode Encryption ...\n");
+    Block *IV;
+    Data *raw_IV;
 
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
+
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        IV = Data2Blocks(raw_IV, IV, 1);
+        Encryption(IV->state, key->exp_key, key->round);
+        raw_IV = Blocks2Data(raw_IV, IV, 1);
+        data->buffer[i] = (data->buffer[i]) ^ raw_IV->buffer[0];
+        raw_IV = ShiftIV_8_bit(raw_IV, raw_IV->buffer[0]);
+
+    }
+
+    return data;
+}
+
+Data *OFB_8_Mode_Decryption(Data *data, Key *key) {
+    printf("OFB-8 mode Decryption ...\n");
+    Block *IV;
+    Data *raw_IV;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
+
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        IV = Data2Blocks(raw_IV, IV, 1);
+        Encryption(IV->state, key->exp_key, key->round);
+        raw_IV = Blocks2Data(raw_IV, IV, 1);
+        data->buffer[i] = (data->buffer[i]) ^ raw_IV->buffer[0];
+        raw_IV = ShiftIV_8_bit(raw_IV, raw_IV->buffer[0]);
+    }
+
+    return data;
+}
+
+Data *OFB_1_Mode_Encryption(Data *data, Key *key) {
+    printf("OFB-1 mode Encryption ...\n");
+    Block *IV;
+    Data *raw_IV;
+    unsigned char out_byte;
+    unsigned char inp_byte;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
+
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        out_byte = 0;
+        // extract one bit and encryption
+        for(int left_shift_bit=7;left_shift_bit>-1;left_shift_bit--){
+            inp_byte = (data->buffer[i] >> left_shift_bit) & 0x01; // extract one bit
+            IV = Data2Blocks(raw_IV, IV, 1);
+            Encryption(IV->state, key->exp_key, key->round);
+            raw_IV = Blocks2Data(raw_IV, IV, 1);
+            inp_byte = inp_byte ^ ((raw_IV->buffer[0] >> 7 ) & 0x01); // one bit xor
+            raw_IV = ShiftIV_1_bit(raw_IV, ((raw_IV->buffer[0] >> 7 ) & 0x01));
+            out_byte = out_byte | (inp_byte << left_shift_bit); // store one bit to tmp_buffer
+
+        }
+        data->buffer[i] = out_byte;
+    }
+
+    return data;
+}
+
+Data *OFB_1_Mode_Decryption(Data *data, Key *key) {
+    printf("OFB-1 mode Decryption ...\n");
+    Block *IV;
+    Data *raw_IV;
+    unsigned char out_byte;
+    unsigned char inp_byte;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
+
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        out_byte = 0;
+        // extract one bit and encryption
+        for(int left_shift_bit=7;left_shift_bit>-1;left_shift_bit--){
+            inp_byte = (data->buffer[i] >> left_shift_bit) & 0x01; // extract one bit
+            IV = Data2Blocks(raw_IV, IV, 1);
+            Encryption(IV->state, key->exp_key, key->round);
+            raw_IV = Blocks2Data(raw_IV, IV, 1);
+            inp_byte  = inp_byte  ^ ((raw_IV->buffer[0] >> 7 ) & 0x01);
+            raw_IV = ShiftIV_1_bit(raw_IV, ((raw_IV->buffer[0] >> 7 ) & 0x01));
+            out_byte = out_byte | (inp_byte  << left_shift_bit); // store one bit to tmp_buffer
+        }
+        data->buffer[i] = out_byte;
+    }
+    return data;
+}
 int main(void) {
     // Hyper parameters
     char *inp_file_name, *out_file_name;
@@ -26,7 +144,7 @@ int main(void) {
     char test_origin_file_name[100] = "0.png";
     char test_encryption_file_name[100] = "e.png";
     char test_decryption_file_name[100] = "d.png";
-    int Block_Mode = PCBC_MODE;  // block operation mode
+    int Block_Mode = OFB_1_MODE;  // block operation mode
     int OperationDataType = 1;    // 1 ->block type ECB,CBC,PCBC  0->stream CFB,OFB
 
 
@@ -94,6 +212,7 @@ int main(void) {
                 out_data = CFB_1_Mode_Encryption(inp_data, key);
                 break;
             case OFB_8_MODE:
+                out_data = OFB_8_Mode_Encryption(inp_data, key);
                 break;
             case OFB_1_MODE:
                 break;
@@ -119,6 +238,7 @@ int main(void) {
                 out_data = CFB_1_Mode_Decryption(inp_data, key);
                 break;
             case OFB_8_MODE:
+                out_data = OFB_8_Mode_Decryption(inp_data, key);
                 break;
             case OFB_1_MODE:
                 break;
