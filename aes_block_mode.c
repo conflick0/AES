@@ -139,6 +139,151 @@ Block *PCBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_numb
     return block;
 }
 
+
+Data *ShiftIV_8_bit(Data *raw_IV, unsigned char buffer) {
+    for (int i = 0; i < 15; i++) {
+        raw_IV->buffer[i] = raw_IV->buffer[i + 1];
+    }
+    raw_IV->buffer[15] = buffer;
+    return raw_IV;
+}
+
+Data *CFB_8_Mode_Encryption(Data *data, Key *key) {
+    printf("CFB-8 mode Encryption ...\n");
+    Block *IV;
+    Data *raw_IV;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
+
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        IV = Data2Blocks(raw_IV, IV, 1);
+        Encryption(IV->state, key->exp_key, key->round);
+        raw_IV = Blocks2Data(raw_IV, IV, 1);
+        data->buffer[i] = (data->buffer[i]) ^ raw_IV->buffer[0];
+        raw_IV = ShiftIV_8_bit(raw_IV, data->buffer[i]);
+
+    }
+
+    return data;
+}
+
+Data *CFB_8_Mode_Decryption(Data *data, Key *key) {
+    printf("CFB-8 mode Decryption ...\n");
+    Block *IV;
+    unsigned char prev_buffer;
+    Data *raw_IV;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
+
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        prev_buffer = data->buffer[i];
+        IV = Data2Blocks(raw_IV, IV, 1);
+        Encryption(IV->state, key->exp_key, key->round);
+        raw_IV = Blocks2Data(raw_IV, IV, 1);
+        data->buffer[i] = (data->buffer[i]) ^ raw_IV->buffer[0];
+        raw_IV = ShiftIV_8_bit(raw_IV, prev_buffer);
+    }
+
+    return data;
+}
+
+Data *ShiftIV_1_bit(Data *raw_IV, unsigned char padding_buffer) {
+
+    for (int i = 0; i < 15; i++) {
+        // shift left 7 bit and padding 1 bit
+        raw_IV->buffer[i] = ((raw_IV->buffer[i] << 1) |
+                             (raw_IV->buffer[i + 1] >> 7) & 0x01);
+    }
+    // last byte shift left 7 bit and padding 1 bit
+    raw_IV->buffer[15] = ((raw_IV->buffer[15] << 1) | padding_buffer);
+
+    return raw_IV;
+}
+
+Data *CFB_1_Mode_Encryption(Data *data, Key *key) {
+    printf("CFB-1 mode Encryption ...\n");
+    Block *IV;
+    Data *raw_IV;
+    unsigned char out_byte;
+    unsigned char inp_byte;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
+
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        out_byte = 0;
+        // extract one bit and encryption
+        for(int left_shift_bit=7;left_shift_bit>-1;left_shift_bit--){
+            inp_byte = (data->buffer[i] >> left_shift_bit) & 0x01; // extract one bit
+            IV = Data2Blocks(raw_IV, IV, 1);
+            Encryption(IV->state, key->exp_key, key->round);
+            raw_IV = Blocks2Data(raw_IV, IV, 1);
+            inp_byte = inp_byte ^ ((raw_IV->buffer[0] >> 7 ) & 0x01); // one bit xor
+            raw_IV = ShiftIV_1_bit(raw_IV, inp_byte);
+            out_byte = out_byte | (inp_byte << left_shift_bit); // store one bit to tmp_buffer
+
+        }
+        data->buffer[i] = out_byte;
+    }
+
+    return data;
+}
+
+Data *CFB_1_Mode_Decryption(Data *data, Key *key) {
+    printf("CFB-1 mode Decryption ...\n");
+    Block *IV;
+    Data *raw_IV;
+    unsigned char prev_byte;
+    unsigned char out_byte;
+    unsigned char inp_byte;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
+
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        out_byte = 0;
+        // extract one bit and encryption
+        for(int left_shift_bit=7;left_shift_bit>-1;left_shift_bit--){
+            inp_byte = (data->buffer[i] >> left_shift_bit) & 0x01; // extract one bit
+            prev_byte = inp_byte ;
+            IV = Data2Blocks(raw_IV, IV, 1);
+            Encryption(IV->state, key->exp_key, key->round);
+            raw_IV = Blocks2Data(raw_IV, IV, 1);
+            inp_byte  = prev_byte  ^ ((raw_IV->buffer[0] >> 7 ) & 0x01);;
+            raw_IV = ShiftIV_1_bit(raw_IV, prev_byte);
+            out_byte = out_byte | (inp_byte  << left_shift_bit); // store one bit to tmp_buffer
+        }
+        data->buffer[i] = out_byte;
+    }
+    return data;
+}
+
 Data *InitialData(Data *data,unsigned long int data_size_bytes){
     data -> raw_size_bytes = data_size_bytes;
 

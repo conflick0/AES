@@ -38,6 +38,18 @@ Block *PCBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_numb
 
 Block *PCBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_number);
 
+Data *ShiftIV_8_bit(Data *raw_IV, unsigned char buffer);
+
+Data *CFB_8_Mode_Encryption(Data *data, Key *key);
+
+Data *CFB_8_Mode_Decryption(Data *data, Key *key);
+
+Data *ShiftIV_1_bit(Data *raw_IV, unsigned char padding_buffer);
+
+Data *CFB_1_Mode_Encryption(Data *data, Key *key);
+
+Data *CFB_1_Mode_Decryption(Data *data, Key *key);
+
 Data *InitialData(Data *data,unsigned long int data_size_bytes);
 
 Data *ReadFile(char *file_name, Data *data);
