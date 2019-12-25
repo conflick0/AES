@@ -22,7 +22,7 @@ int main(void) {
     Key *key;
 
     // Hyper parameters test value
-    int en_de_cryption_flag = 0;   // 1 -> encryption, 0 -> decryption
+    int en_de_cryption_flag = 1;   // 1 -> encryption, 0 -> decryption
     char test_origin_file_name[100] = "0.png";
     char test_encryption_file_name[100] = "e.png";
     char test_decryption_file_name[100] = "d.png";
@@ -97,6 +97,7 @@ int main(void) {
                 out_data = OFB_8_Mode_Encryption(inp_data, key);
                 break;
             case OFB_1_MODE:
+                out_data = OFB_1_Mode_Encryption(inp_data, key);
                 break;
             case CTR_MODE:
                 break;
@@ -123,6 +124,7 @@ int main(void) {
                 out_data = OFB_8_Mode_Decryption(inp_data, key);
                 break;
             case OFB_1_MODE:
+                out_data = OFB_1_Mode_Decryption(inp_data, key);
                 break;
             case CTR_MODE:
                 break;
