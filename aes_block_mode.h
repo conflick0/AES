@@ -50,6 +50,14 @@ Data *CFB_1_Mode_Encryption(Data *data, Key *key);
 
 Data *CFB_1_Mode_Decryption(Data *data, Key *key);
 
+Data *OFB_8_Mode_Encryption(Data *data, Key *key);
+
+Data *OFB_8_Mode_Decryption(Data *data, Key *key);
+
+Data *OFB_1_Mode_Encryption(Data *data, Key *key);
+
+Data *OFB_1_Mode_Decryption(Data *data, Key *key);
+
 Data *InitialData(Data *data,unsigned long int data_size_bytes);
 
 Data *ReadFile(char *file_name, Data *data);
