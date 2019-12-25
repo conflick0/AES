@@ -65,6 +65,89 @@ Data *CFB_8_Mode_Decryption(Data *data, Key *key) {
     return data;
 }
 
+Data *ShiftIV_1_bit(Data *raw_IV, unsigned char padding_buffer) {
+
+    for (int i = 0; i < 15; i++) {
+        // shift left 7 bit and padding 1 bit
+        raw_IV->buffer[i] = ((raw_IV->buffer[i] << 1) |
+                            (raw_IV->buffer[i + 1] >> 7) & 0x01);
+    }
+    // last byte shift left 7 bit and padding 1 bit
+    raw_IV->buffer[15] = ((raw_IV->buffer[15] << 1) | padding_buffer);
+
+    return raw_IV;
+}
+
+Data *CFB_1_Mode_Encryption(Data *data, Key *key) {
+    printf("CFB-1 mode Encryption ...\n");
+    Block *IV;
+    Data *raw_IV;
+    unsigned char out_byte;
+    unsigned char inp_byte;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
+
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        out_byte = 0;
+        // extract one bit and encryption
+        for(int left_shift_bit=7;left_shift_bit>-1;left_shift_bit--){
+            inp_byte = (data->buffer[i] >> left_shift_bit) & 0x01; // extract one bit
+            IV = Data2Blocks(raw_IV, IV, 1);
+            Encryption(IV->state, key->exp_key, key->round);
+            raw_IV = Blocks2Data(raw_IV, IV, 1);
+            inp_byte = inp_byte ^ ((raw_IV->buffer[0] >> 7 ) & 0x01); // one bit xor
+            raw_IV = ShiftIV_1_bit(raw_IV, inp_byte);
+            out_byte = out_byte | (inp_byte << left_shift_bit); // store one bit to tmp_buffer
+
+        }
+        data->buffer[i] = out_byte;
+    }
+
+    return data;
+}
+
+Data *CFB_1_Mode_Decryption(Data *data, Key *key) {
+    printf("CFB-1 mode Decryption ...\n");
+    Block *IV;
+    Data *raw_IV;
+    unsigned char prev_byte;
+    unsigned char out_byte;
+    unsigned char inp_byte;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV);
+
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = calloc(sizeof(unsigned char), 16);
+    raw_IV = Blocks2Data(raw_IV, IV, 1);
+
+    for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        out_byte = 0;
+        // extract one bit and encryption
+        for(int left_shift_bit=7;left_shift_bit>-1;left_shift_bit--){
+            inp_byte = (data->buffer[i] >> left_shift_bit) & 0x01; // extract one bit
+            prev_byte = inp_byte ;
+            IV = Data2Blocks(raw_IV, IV, 1);
+            Encryption(IV->state, key->exp_key, key->round);
+            raw_IV = Blocks2Data(raw_IV, IV, 1);
+            inp_byte  = prev_byte  ^ ((raw_IV->buffer[0] >> 7 ) & 0x01);;
+            raw_IV = ShiftIV_1_bit(raw_IV, prev_byte);
+            out_byte = out_byte | (inp_byte  << left_shift_bit); // store one bit to tmp_buffer
+        }
+        data->buffer[i] = out_byte;
+    }
+    return data;
+}
+
 int main(void) {
     // Hyper parameters
     char *inp_file_name, *out_file_name;
@@ -77,8 +160,8 @@ int main(void) {
 
     // Hyper parameters test value
     int en_de_cryption_flag = 0; // 1 -> encryption, 0 -> decryption
-    char test_inp_file_name[100] = "e.txt"; //0.png//e.png//d.png
-    char test_out_file_name[100] = "d.txt";
+    char test_inp_file_name[100] = "e.png"; //0.png//e.png//d.png
+    char test_out_file_name[100] = "d.png";
     int special_mode = 1; // 0 -> ECB,CBC,PCBC,CTR, 1 -> CFB,OFB
 
 
@@ -118,6 +201,7 @@ int main(void) {
     // block encryption/decryption
     if (en_de_cryption_flag == 1) {
         if (special_mode == 1) {
+//            inp_data = CFB_1_Mode_Encryption(inp_data, key);
             inp_data = CFB_8_Mode_Encryption(inp_data, key);
         }
         else {
@@ -131,6 +215,7 @@ int main(void) {
     }
     else {
         if (special_mode == 1) {
+//            inp_data = CFB_1_Mode_Decryption(inp_data, key);
             inp_data = CFB_8_Mode_Decryption(inp_data, key);
         }
         else {
