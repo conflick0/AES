@@ -4,18 +4,16 @@
 #include "aes.h"
 
 
-Data *ShiftIV(Data *raw_IV, unsigned char buffer, int shift_bits) {
-    int preserve_bits = 8 - shift_bits;
+Data *ShiftIV(Data *raw_IV, unsigned char buffer) {
     for (int i = 0; i < 15; i++) {
-        raw_IV->buffer[i] = ((raw_IV->buffer[i] >> preserve_bits) << preserve_bits) |
-                            (raw_IV->buffer[i + shift_bits] >> shift_bits);
+        raw_IV->buffer[i] = raw_IV->buffer[i + 1];
     }
-    raw_IV->buffer[16] = buffer;
+    raw_IV->buffer[15] = buffer;
     return raw_IV;
 }
 
-Data *CFB_Mode_Encryption(Data *data, Key *key,int shift_bits) {
-    printf("CFB-%d mode Encryption ...\n",shift_bits);
+Data *CFB_8_Mode_Encryption(Data *data, Key *key) {
+    printf("CFB-8 mode Encryption ...\n");
     Block *IV;
     Data *raw_IV;
 
@@ -29,16 +27,19 @@ Data *CFB_Mode_Encryption(Data *data, Key *key,int shift_bits) {
     raw_IV = Blocks2Data(raw_IV, IV, 1);
 
     for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
+        IV = Data2Blocks(raw_IV, IV, 1);
         Encryption(IV->state, key->exp_key, key->round);
+        raw_IV = Blocks2Data(raw_IV, IV, 1);
         data->buffer[i] = (data->buffer[i]) ^ raw_IV->buffer[0];
-        raw_IV = ShiftIV(raw_IV, data->buffer[i],shift_bits);
+        raw_IV = ShiftIV(raw_IV, data->buffer[i]);
+
     }
 
     return data;
 }
 
-Data *CFB_Mode_Decryption(Data *data, Key *key,int shift_bits) {
-    printf("CFB-%d mode Decryption ...\n",shift_bits);
+Data *CFB_8_Mode_Decryption(Data *data, Key *key) {
+    printf("CFB-8 mode Decryption ...\n");
     Block *IV;
     unsigned char prev_buffer;
     Data *raw_IV;
@@ -54,14 +55,15 @@ Data *CFB_Mode_Decryption(Data *data, Key *key,int shift_bits) {
 
     for (unsigned long int i = 0; i < data->padding_size_bytes; i++) {
         prev_buffer = data->buffer[i];
+        IV = Data2Blocks(raw_IV, IV, 1);
         Encryption(IV->state, key->exp_key, key->round);
+        raw_IV = Blocks2Data(raw_IV, IV, 1);
         data->buffer[i] = (data->buffer[i]) ^ raw_IV->buffer[0];
-        raw_IV = ShiftIV(raw_IV, prev_buffer,shift_bits);
+        raw_IV = ShiftIV(raw_IV, prev_buffer);
     }
 
     return data;
 }
-
 
 int main(void) {
     // Hyper parameters
@@ -116,8 +118,7 @@ int main(void) {
     // block encryption/decryption
     if (en_de_cryption_flag == 1) {
         if (special_mode == 1) {
-//            inp_data = CFB_Mode_Encryption(inp_data, key,8);
-            inp_data = CFB_Mode_Encryption(inp_data, key,1);
+            inp_data = CFB_8_Mode_Encryption(inp_data, key);
         }
         else {
 //            block = ECB_Mode_Encryption(block, key, block_number);
@@ -130,8 +131,7 @@ int main(void) {
     }
     else {
         if (special_mode == 1) {
-//            inp_data = CFB_Mode_Decryption(inp_data, key,8);
-            inp_data = CFB_Mode_Decryption(inp_data, key,1);
+            inp_data = CFB_8_Mode_Decryption(inp_data, key);
         }
         else {
 //            block = ECB_Mode_Decryption(block, key, block_number);
