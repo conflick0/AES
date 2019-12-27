@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include "aes_block_mode.h"
+#include "aes.h"
 
 #define ECB_MODE 0
 #define CBC_MODE 1
@@ -10,6 +11,7 @@
 #define OFB_8_MODE 5
 #define OFB_1_MODE 6
 #define CTR_MODE 7
+
 
 int main(void) {
     // Hyper parameters
@@ -26,7 +28,7 @@ int main(void) {
     char test_origin_file_name[100] = "0.png";
     char test_encryption_file_name[100] = "e.png";
     char test_decryption_file_name[100] = "d.png";
-    int Block_Mode = OFB_8_MODE;  // block operation mode
+    int Block_Mode = CTR_MODE;  // block operation mode
     int OperationDataType = 1;    // 1 ->block type ECB,CBC,PCBC  0->stream CFB,OFB
 
 
@@ -100,6 +102,7 @@ int main(void) {
                 out_data = OFB_1_Mode_Encryption(inp_data, key);
                 break;
             case CTR_MODE:
+                CTR_Mode_Encryption(block, key, block_number);
                 break;
         }
     }
@@ -127,6 +130,7 @@ int main(void) {
                 out_data = OFB_1_Mode_Decryption(inp_data, key);
                 break;
             case CTR_MODE:
+                CTR_Mode_Decryption(block, key, block_number);
                 break;
         }
     }

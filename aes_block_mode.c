@@ -4,7 +4,7 @@
 #include "aes_block_mode.h"
 #include "aes.h"
 
-unsigned int *XOR(unsigned int *inp1_state, unsigned int *inp2_state) {
+unsigned int *XOR_State(unsigned int *inp1_state, unsigned int *inp2_state) {
     unsigned int *state;
     state = malloc(sizeof(unsigned int) * 4);
 
@@ -54,7 +54,7 @@ Block *InitialIV(Block *IV, int en_de_flag) {
     return IV;
 }
 
-Block* ECB_Mode_Encryption(Block *block,Key *key, unsigned long int block_number){
+Block *ECB_Mode_Encryption(Block *block,Key *key, unsigned long int block_number){
     printf("ECB mode Encryption ...\n");
     for(unsigned long int i=0;i<block_number;i++){
         (block+i)->state = Encryption((block+i)->state, key->exp_key, key->round);
@@ -77,11 +77,11 @@ Block *CBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_numbe
     IV = malloc(sizeof(Block));
     IV = InitialIV(IV,1);
 
-    (block + 0)->state = XOR((block + 0)->state, IV->state);
+    (block + 0)->state = XOR_State((block + 0)->state, IV->state);
     (block + 0)->state = Encryption((block + 0)->state, key->exp_key, key->round);
 
     for (unsigned long int i = 1; i < block_number; i++) {
-        (block + i)->state = XOR((block + i)->state, (block + i - 1)->state);
+        (block + i)->state = XOR_State((block + i)->state, (block + i - 1)->state);
         (block + i)->state = Encryption((block + i)->state, key->exp_key, key->round);
     }
 
@@ -101,7 +101,7 @@ Block *CBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_numbe
     for (unsigned long int i = 0; i < block_number; i++) {
         prev->state = CopyState(prev->state, (block + i)->state);
         (block + i)->state = Decryption((block + i)->state, key->exp_key, key->round);
-        (block + i)->state = XOR((block + i)->state, IV->state);
+        (block + i)->state = XOR_State((block + i)->state, IV->state);
         IV->state = CopyState(IV->state, prev->state);
     }
 
@@ -120,13 +120,13 @@ Block *PCBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_numb
 
 
     prev->state = CopyState(prev->state, (block + 0)->state);
-    (block + 0)->state = XOR((block + 0)->state, IV->state);
+    (block + 0)->state = XOR_State((block + 0)->state, IV->state);
     (block + 0)->state = Encryption((block + 0)->state, key->exp_key, key->round);
 
     for (unsigned long int i = 1; i < block_number; i++) {
-        IV->state = XOR((block + i - 1)->state, prev->state);
+        IV->state = XOR_State((block + i - 1)->state, prev->state);
         prev->state = CopyState(prev->state, (block + i)->state);
-        (block + i)->state = XOR((block + i)->state, IV->state);
+        (block + i)->state = XOR_State((block + i)->state, IV->state);
         (block + i)->state = Encryption((block + i)->state, key->exp_key, key->round);
     }
 
@@ -145,13 +145,13 @@ Block *PCBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_numb
 
     prev->state = CopyState(prev->state, (block + 0)->state);
     (block + 0)->state = Decryption((block + 0)->state, key->exp_key, key->round);
-    (block + 0)->state = XOR((block + 0)->state, IV->state);
+    (block + 0)->state = XOR_State((block + 0)->state, IV->state);
 
     for (unsigned long int i = 1; i < block_number; i++) {
-        IV->state = XOR((block + i - 1)->state, prev->state);
+        IV->state = XOR_State((block + i - 1)->state, prev->state);
         prev->state = CopyState(prev->state, (block + i)->state);
         (block + i)->state = Decryption((block + i)->state, key->exp_key, key->round);
-        (block + i)->state = XOR((block + i)->state, IV->state);
+        (block + i)->state = XOR_State((block + i)->state, IV->state);
     }
 
     return block;
@@ -418,6 +418,70 @@ Data *OFB_1_Mode_Decryption(Data *data, Key *key) {
         data->buffer[i] = out_byte;
     }
     return data;
+}
+
+Block *IV_Counter(Block *IV,unsigned char idx){
+    Data *raw_IV;
+    unsigned int tmp;
+    unsigned char carry = idx;
+
+    // initial IV
+    raw_IV = malloc(sizeof(Data));
+    raw_IV->raw_size_bytes = 16;
+    raw_IV->padding_size_bytes = 16;
+    raw_IV->buffer = malloc(sizeof(unsigned char)*16);
+
+    raw_IV= Blocks2Data(raw_IV,IV,1);
+
+    //bit adder
+    for(int i=0;i<16;i++){
+        tmp = raw_IV->buffer[i] + carry;
+        carry = tmp >> 8;
+        raw_IV->buffer[i] = tmp & 0xff;
+    }
+
+    IV = Data2Blocks(raw_IV,IV,1);
+
+    return IV;
+}
+
+Block *CTR_Mode_Encryption(Block *block,Key *key, unsigned long int block_number){
+    printf("CTR mode Encryption ...\n");
+    Block *IV,*tmp_IV;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV,1);
+
+    tmp_IV = malloc(sizeof(Block));
+    tmp_IV->state = malloc(sizeof(unsigned int)*4);
+
+    for(unsigned long int i=0;i<block_number;i++){
+        tmp_IV->state = CopyState(tmp_IV->state,IV->state);
+        tmp_IV = IV_Counter(tmp_IV,i);
+        tmp_IV->state = Encryption(tmp_IV->state, key->exp_key, key->round);
+        (block + i)->state = XOR_State((block + i)->state, tmp_IV->state);
+    }
+    return block;
+}
+
+Block *CTR_Mode_Decryption(Block *block,Key *key, unsigned long int block_number){
+    printf("CTR mode Decryption ...\n");
+    Block *IV,*tmp_IV;
+
+    IV = malloc(sizeof(Block));
+    IV = InitialIV(IV,0);
+
+    tmp_IV = malloc(sizeof(Block));
+    tmp_IV->state = malloc(sizeof(unsigned int)*4);
+
+    for(unsigned long int i=0;i<block_number;i++){
+        tmp_IV->state = CopyState(tmp_IV->state,IV->state);
+        tmp_IV = IV_Counter(tmp_IV,i);
+        tmp_IV->state = Encryption(tmp_IV->state, key->exp_key, key->round);
+        (block + i)->state = XOR_State((block + i)->state, tmp_IV->state);
+    }
+
+    return block;
 }
 
 Data *InitialData(Data *data,unsigned long int data_size_bytes){

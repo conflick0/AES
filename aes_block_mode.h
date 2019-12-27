@@ -20,7 +20,7 @@ typedef struct {
     unsigned int *exp_key;
 } Key;
 
-unsigned int *XOR(unsigned int *inp1_state, unsigned int *inp2_state);
+unsigned int *XOR_State(unsigned int *inp1_state, unsigned int *inp2_state);
 
 unsigned int *CopyState(unsigned int *out_state, unsigned int *inp_state);
 
@@ -57,6 +57,12 @@ Data *OFB_8_Mode_Decryption(Data *data, Key *key);
 Data *OFB_1_Mode_Encryption(Data *data, Key *key);
 
 Data *OFB_1_Mode_Decryption(Data *data, Key *key);
+
+Block *IV_Counter(Block *IV,unsigned char idx);
+
+Block *CTR_Mode_Encryption(Block *block,Key *key, unsigned long int block_number);
+
+Block *CTR_Mode_Decryption(Block *block,Key *key, unsigned long int block_number);
 
 Data *InitialData(Data *data,unsigned long int data_size_bytes);
 
