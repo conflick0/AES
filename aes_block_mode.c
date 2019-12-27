@@ -1,9 +1,9 @@
-
-
 #include<stdio.h>
 #include<stdlib.h>
+#include<time.h>
 #include "aes_block_mode.h"
 #include "aes.h"
+
 unsigned int *XOR(unsigned int *inp1_state, unsigned int *inp2_state) {
     unsigned int *state;
     state = malloc(sizeof(unsigned int) * 4);
@@ -22,15 +22,35 @@ unsigned int *CopyState(unsigned int *out_state, unsigned int *inp_state) {
     return out_state;
 }
 
-Block *InitialIV(Block *IV) {
-    unsigned char test_iv_value[16] = "1234567812345678";//just for test
+Block *InitialIV(Block *IV, int en_de_flag) {
+    char *IV_file = "IV.txt";
+    unsigned char min = 0x00;
+    unsigned char max = 0xff;
     Data *raw_IV;
+
+    // initial IV
     raw_IV = malloc(sizeof(Data));
     raw_IV->raw_size_bytes = 16;
     raw_IV->padding_size_bytes = 16;
-    raw_IV->buffer = test_iv_value;
+    raw_IV->buffer = malloc(sizeof(unsigned char)*16);
 
+    if(en_de_flag == 1){
+        // for encryption, random IV value and write out to file
+        srand( time(NULL) );
+        for(int i=0;i<16;i++){
+            raw_IV->buffer[i] = rand() % (max - min + 1) + min;
+        }
+
+        WriteFile(IV_file,raw_IV);
+    }
+    else{
+        // for decryption, read IV value form file
+        raw_IV=ReadFile(IV_file,raw_IV);
+    }
+
+    // transform to block
     IV = Data2Blocks(raw_IV, IV, 1);
+
     return IV;
 }
 
@@ -55,7 +75,7 @@ Block *CBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_numbe
     Block *IV;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,1);
 
     (block + 0)->state = XOR((block + 0)->state, IV->state);
     (block + 0)->state = Encryption((block + 0)->state, key->exp_key, key->round);
@@ -73,7 +93,7 @@ Block *CBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_numbe
     Block *IV, *prev;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,0);
 
     prev = malloc(sizeof(Block));
     prev->state = malloc(sizeof(unsigned int) * 4);
@@ -93,7 +113,7 @@ Block *PCBC_Mode_Encryption(Block *block, Key *key, unsigned long int block_numb
     Block *IV, *prev;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,1);
 
     prev = malloc(sizeof(Block));
     prev->state = malloc(sizeof(unsigned int) * 4);
@@ -118,7 +138,7 @@ Block *PCBC_Mode_Decryption(Block *block, Key *key, unsigned long int block_numb
     Block *IV, *prev;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,0);
 
     prev = malloc(sizeof(Block));
     prev->state = malloc(sizeof(unsigned int) * 4);
@@ -151,7 +171,7 @@ Data *CFB_8_Mode_Encryption(Data *data, Key *key) {
     Data *raw_IV;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,1);
 
     raw_IV = malloc(sizeof(Data));
     raw_IV->raw_size_bytes = 16;
@@ -178,7 +198,7 @@ Data *CFB_8_Mode_Decryption(Data *data, Key *key) {
     Data *raw_IV;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,0);
 
     raw_IV = malloc(sizeof(Data));
     raw_IV->raw_size_bytes = 16;
@@ -219,7 +239,7 @@ Data *CFB_1_Mode_Encryption(Data *data, Key *key) {
     unsigned char inp_byte;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,1);
 
     raw_IV = malloc(sizeof(Data));
     raw_IV->raw_size_bytes = 16;
@@ -255,7 +275,7 @@ Data *CFB_1_Mode_Decryption(Data *data, Key *key) {
     unsigned char inp_byte;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,0);
 
     raw_IV = malloc(sizeof(Data));
     raw_IV->raw_size_bytes = 16;
@@ -287,7 +307,7 @@ Data *OFB_8_Mode_Encryption(Data *data, Key *key) {
     Data *raw_IV;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,1);
 
     raw_IV = malloc(sizeof(Data));
     raw_IV->raw_size_bytes = 16;
@@ -313,7 +333,7 @@ Data *OFB_8_Mode_Decryption(Data *data, Key *key) {
     Data *raw_IV;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,0);
 
     raw_IV = malloc(sizeof(Data));
     raw_IV->raw_size_bytes = 16;
@@ -340,7 +360,7 @@ Data *OFB_1_Mode_Encryption(Data *data, Key *key) {
     unsigned char inp_byte;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,1);
 
     raw_IV = malloc(sizeof(Data));
     raw_IV->raw_size_bytes = 16;
@@ -375,7 +395,7 @@ Data *OFB_1_Mode_Decryption(Data *data, Key *key) {
     unsigned char inp_byte;
 
     IV = malloc(sizeof(Block));
-    IV = InitialIV(IV);
+    IV = InitialIV(IV,0);
 
     raw_IV = malloc(sizeof(Data));
     raw_IV->raw_size_bytes = 16;
@@ -422,6 +442,11 @@ Data *ReadFile(char *file_name, Data *data) {
     unsigned long int file_size_bytes;
 
     file_ptr = fopen(file_name, "rb");            // Open the file in binary mode
+    if(file_ptr == NULL){
+        printf("Error: ReadFile() failure, \"%s\" not found !!",file_name);
+        exit(-1);
+    }
+
     fseek(file_ptr, 0, SEEK_END);                 // Jump to the end of the file
     file_size_bytes = ftell(file_ptr);            // Get the current byte offset in the file
     rewind(file_ptr);                             // Jump back to the beginning of the file
@@ -438,6 +463,7 @@ void WriteFile(char *file_name, Data *data) {
     FILE *file_ptr;
 
     file_ptr = fopen(file_name, "wb");// Open the file in binary mode
+
     fwrite(data->buffer, 1, data->padding_size_bytes, file_ptr);
 
     fclose(file_ptr); // Close the file

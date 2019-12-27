@@ -24,7 +24,7 @@ unsigned int *XOR(unsigned int *inp1_state, unsigned int *inp2_state);
 
 unsigned int *CopyState(unsigned int *out_state, unsigned int *inp_state);
 
-Block *InitialIV(Block *IV);
+Block *InitialIV(Block *IV, int en_de_flag);
 
 Block* ECB_Mode_Encryption(Block *block,Key *key, unsigned long int block_number);
 
