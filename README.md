@@ -32,3 +32,13 @@ gcc main.c aes.c aes_const.c aes_block_mode.c -o main.out
 ```
 ./main.out
 ```
+
+## Note
+If your IDE is **Clion**, you need to set your **Working directory**. Otherwise, program could not read the input file.
+
+1. click ***Run -> Edit Configurations***
+> ![](https://i.imgur.com/WXlydmu.png)
+    
+2.  set ***Working directory***
+
+> ![](https://i.imgur.com/OZToRbw.png)
