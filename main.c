@@ -24,47 +24,87 @@ int main(void) {
     Key *key;
 
     // Hyper parameters test value
-    int en_de_cryption_flag = 0;   // 1 -> encryption, 0 -> decryption
-    char test_origin_file_name[100] = "0.png";
-    char test_encryption_file_name[100] = "e.png";
-    char test_decryption_file_name[100] = "d.png";
-    int Block_Mode = CTR_MODE;  // block operation mode
-    int OperationDataType = 1;    // 1 ->block type ECB,CBC,PCBC  0->stream CFB,OFB
+    int en_de_cryption_flag;// = 0;   // 1 -> encryption, 0 -> decryption
+    int Block_Mode; //= CTR_MODE;  // block operation mode
+    int OperationDataType; //= 1;    // 1 ->block type ECB,CBC,PCBC,CTR  0->stream CFB,OFB
+//    char test_origin_file_name[100] = "0.png";
+//    char test_encryption_file_name[100] = "e.png";
+//    char test_decryption_file_name[100] = "d.png";
+
+    int choose;
+
+    // choose encryption or decryption
+    printf("Choose (1)encryption or (0)decryption (Enter 1 or 0):");
+    scanf("%d",&en_de_cryption_flag);
+
+    // choose Block Mode
+    printf("\nBlock Mode:\n");
+    printf("0. ECB_Mode\n");
+    printf("1. CBC_Mode\n");
+    printf("2. PCBC_Mode\n");
+    printf("3. CFB_8_Mode\n");
+    printf("4. CFB_1_Mode\n");
+    printf("5. OFB_8_Mode\n");
+    printf("6. OFB_1_Mode\n");
+    printf("7. CTR_Mode\n");
+    printf("Enter number to choose Block Mode:");
+    scanf("%d",&Block_Mode);
 
 
-    unsigned char test_inp_key[16] = "0000000000000000";
-    int test_key_size_bits = 128;
-
-
-    // input file name
-    if(en_de_cryption_flag==1){
-        inp_file_name = malloc(sizeof(char) * 100);    // malloc input file name
-        out_file_name = malloc(sizeof(char) * 100);    // malloc output file name
-        inp_file_name =test_origin_file_name;          // input input file name
-        out_file_name = test_encryption_file_name;     // input output file name
+    //OperationDataType 1 ->block type ECB,CBC,PCBC,CTR  0->stream CFB,OFB
+    if(Block_Mode>=3 && Block_Mode<=6){
+        OperationDataType = 0;
     }
     else{
-        inp_file_name = malloc(sizeof(char) * 100);    // malloc input file name
-        out_file_name = malloc(sizeof(char) * 100);    // malloc output file name
-        inp_file_name = test_encryption_file_name;     // input input file name
-        out_file_name = test_decryption_file_name;     // input output file name
+        OperationDataType = 1;
     }
 
+    // chooose key size
+    printf("\nKey size:\n");
+    printf("0. 128\n");
+    printf("1. 192\n");
+    printf("2. 256\n");
+    printf("Enter number to choose Key size:");
+    scanf("%d",&choose);
+    switch(choose){
+        case 0:
+            key_size_bits = 128;
+            break;
+        case 1:
+            key_size_bits = 192;
+            break;
+        case 2:
+            key_size_bits = 256;
+            break;
+    }
+
+
+    // input key
+    inp_key = malloc(sizeof(char) * (key_size_bits/8)+1);
+    printf("Enter key(%d char):",(key_size_bits/8));
+    scanf("%s",inp_key);
+
+    // input file name
+    inp_file_name = malloc(sizeof(char)*100);
+    printf("Enter input file name:");
+    scanf("%s",inp_file_name);
+
+    out_file_name = malloc(sizeof(char) * 100);
+    printf("Enter output file name:");
+    scanf("%s",out_file_name);
 
 
     // initial key
     key = malloc(sizeof(Key));
-    key_size_bits = test_key_size_bits;                               // input key size 128/192/256
-    inp_key = malloc(sizeof(unsigned char) * ((key->key_size_bits) / 8)); // malloc input key
-    inp_key = test_inp_key;                                           // input key
-    key = InitialKey(inp_key, key, key_size_bits);                      // initial struct key value and expansion key
-    //PrintExpansionKey(key->exp_key);                                // see expansion key result for debug
+    key = InitialKey(inp_key, key,key_size_bits);      // initial struct key value and expansion key
+//    PrintExpansionKey(key->exp_key);                       // see expansion key result for debug
 
 
     // read data(bytes by bytes) from file
     printf("Read file ...\n");
     inp_data = malloc(sizeof(Data));                     // malloc struct inp_data
     inp_data = ReadFile(inp_file_name, inp_data);       // initial struct inp_data value,and read data to inp_data
+
 
     if (OperationDataType == 1) {
         // transform data to block
