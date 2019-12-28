@@ -186,7 +186,7 @@ int main(void) {
     printf("Output file ...\n");
     WriteFile(out_file_name, out_data);
 
-
+    system("pause");
     return 0;
 }
 
