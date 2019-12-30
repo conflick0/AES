@@ -33,6 +33,18 @@ gcc main.c aes.c aes_const.c aes_block_mode.c -o main.out
 ./main.out
 ```
 
+## Excution Result
+### Encryption
+> ![](https://i.imgur.com/lYeW9zD.png)
+### Decryption
+![](https://i.imgur.com/c6FQSJO.png)
+### Original file
+![](https://i.imgur.com/D5VsAia.png)
+### Encryption File
+![](https://i.imgur.com/9S1bLQx.png)
+### Decryption File
+![](https://i.imgur.com/UQN0Cml.png)
+
 ## Note
 If your IDE is **Clion**, you need to set your **Working directory**. Otherwise, program could not read the input file.
 
