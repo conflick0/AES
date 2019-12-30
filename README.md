@@ -1,4 +1,4 @@
-# AES(developing)
+# AES
 Information security homework, implement AES-128, AES-192 and AES-256 encryption/decryption.Furthermore, implement Block cipher mode of operation ECB, CBC, PCBC, CFB, OFB and CTR.
 
 ## Installation
